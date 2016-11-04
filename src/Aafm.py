@@ -84,14 +84,20 @@ class Aafm:
 
 	def get_free_space(self):
 		lines = self.adb_shell('df', self.device_cwd)
+		free = '-'
 		if len(lines) != 2 or not lines[0].startswith('Filesystem'):
-			return '-'
+			return free
 
 		splitted = lines[1].split()
-		if len(splitted) != 5:
-			return '-'
+		if len(splitted) == 5:
+			mountpoint, size, used, free, blksize = splitted
+		if len(splitted) == 6:
+			device, size, used, free, percentage, mountpoint = splitted
+			lines = self.adb_shell('df', '-h', self.device_cwd)
+			splitted = lines[1].split()
+			if len(splitted) == 6:
+				device, size, used, free, percentage, mountpoint = splitted
 
-		mountpoint, size, used, free, blksize = splitted
 		return free
 
 	def probe_for_busybox(self):
@@ -112,6 +118,10 @@ class Aafm:
 			line = line.rstrip()
 			match = pattern.match(line)
 			
+			if not match:
+				pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+) \ *\d+ (?P<owner>\w+)\W+(?P<group>[\w_]+)\W*(?P<size>\d+)?\W+(?P<datetime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) (?P<name>.+)$")
+				match = pattern.match(line)
+
 			if match:
 				permissions = match.group('permissions')
 				owner = match.group('owner')
