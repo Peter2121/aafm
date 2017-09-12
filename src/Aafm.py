@@ -9,7 +9,7 @@ class Aafm:
 		self.host_cwd = host_cwd
 		self.device_cwd = device_cwd
 		self.device_serial = device_serial
-		self.busybox = False
+		self.ls_type = ''
 		self.connected_devices = []
 		
 		# The Android device should always use POSIX path style separators (/),
@@ -50,7 +50,7 @@ class Aafm:
 
 	def set_device_serial(self, serial):
 		self.device_serial = serial
-		self.probe_for_busybox()
+		self.probe_for_ls_type()
 
 	def get_device_serial(self):
 		return self.device_serial
@@ -94,14 +94,23 @@ class Aafm:
 		mountpoint, size, used, free, blksize = splitted
 		return free
 
-	def probe_for_busybox(self):
-		self.busybox = any(line.startswith('BusyBox')
-				for line in self.adb_shell('ls', '--help'))
+	def probe_for_ls_type(self):
+		if any(line.startswith('BusyBox')
+				for line in self.adb_shell('ls', '--help')):
+			self.ls_type = 'busybox'
+		elif any((line.find('toybox') != -1)
+				for line in self.adb_shell('stat', '/system/bin/ls')):
+			self.ls_type = 'toybox'
+		else:
+			self.ls_type = ''
 
 	def device_list_files_parsed(self, device_dir):
-		if self.busybox:
+		if self.ls_type == 'busybox':
 			command = ['ls', '-l', '-A', '-e', '--color=never', device_dir]
 			pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+)\s+(?P<hardlinks>\d+)\s+(?P<owner>[\w_]+)\s+(?P<group>[\w_]+)\s+(?P<size>\d+)\s+(?P<datetime>\w{3} \w{3}\s+\d+\s+\d{2}:\d{2}:\d{2} \d{4}) (?P<name>.+)$")
+		elif self.ls_type == 'toybox':
+			command = ['ls', '-l', '-A', device_dir]
+			pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+)\s+(?P<hardlinks>\d+)\s+(?P<owner>[\w_]+)\s+(?P<group>[\w_]+)\s+(?P<size>\d+)\s+(?P<datetime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) (?P<name>.+)$")
 		else:
 			command = ['ls', '-l', '-a', device_dir]
 			pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+) (?P<owner>\w+)\W+(?P<group>[\w_]+)\W*(?P<size>\d+)?\W+(?P<datetime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) (?P<name>.+)$")
@@ -121,7 +130,7 @@ class Aafm:
 					fsize = 0
 				filename = match.group('name')
 				
-				if self.busybox:
+				if self.ls_type == 'busybox':
 					date_format = "%a %b %d %H:%M:%S %Y"
 				else:
 					date_format = "%Y-%m-%d %H:%M"
