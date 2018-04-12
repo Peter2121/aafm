@@ -36,13 +36,13 @@ class Aafm_GUI:
 	XDS_FILENAME = 'whatever.txt'
 
 	def __init__(self):
-		
+
 		# The super core
-		self.aafm = Aafm('adb', os.getcwd(), '/mnt/sdcard/')
+		self.aafm = Aafm('adb', os.getcwd(), '/storage')
 		self.queue = []
 
 		self.basedir = os.path.dirname(os.path.abspath(__file__))
-		
+
 		if os.name == 'nt':
 			self.get_owner = self._get_owner_windows
 			self.get_group = self._get_group_windows
@@ -60,7 +60,7 @@ class Aafm_GUI:
 		imageDir.set_from_file(os.path.join(self.basedir, './data/icons/folder.png'))
 		imageFile = gtk.Image()
 		imageFile.set_from_file(os.path.join(self.basedir, './data/icons/file.png'))
-		
+
 		# Show hidden files and folders
 		self.showHidden = False
 
@@ -78,17 +78,17 @@ class Aafm_GUI:
 		self.refresh_menu_devices()
 
 		# Host and device TreeViews
-		
+
 		# HOST
 		self.host_treeViewFile = TreeViewFile(imageDir.get_pixbuf(), imageFile.get_pixbuf())
-		
+
 		hostFrame = builder.get_object('frameHost')
 		hostFrame.get_child().add(self.host_treeViewFile.get_view())
-		
+
 		hostTree = self.host_treeViewFile.get_tree()
 		hostTree.connect('row-activated', self.host_navigate_callback)
 		hostTree.connect('button_press_event', self.on_host_tree_view_contextual_menu)
-	
+
 		host_targets = [
 			('DRAG_SELF', gtk.TARGET_SAME_WIDGET, 0),
 			('ADB_text', 0, 1),
@@ -107,14 +107,14 @@ class Aafm_GUI:
 			gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE
 		)
 		hostTree.connect('drag_data_get', self.on_host_drag_data_get)
-		
+
 		self.hostFrame = hostFrame
 		self.hostName = socket.gethostname()
 
 
 		# DEVICE
 		self.device_treeViewFile = TreeViewFile(imageDir.get_pixbuf(), imageFile.get_pixbuf())
-		
+
 		deviceFrame = builder.get_object('frameDevice')
 		deviceFrame.get_child().add(self.device_treeViewFile.get_view())
 
@@ -134,7 +134,7 @@ class Aafm_GUI:
 			gtk.gdk.ACTION_DEFAULT | gtk.gdk.ACTION_COPY | gtk.gdk.ACTION_MOVE
 		)
 		deviceTree.connect('drag-data-received', self.on_device_drag_data_received)
-		
+
 		deviceTree.enable_model_drag_source(
 			gtk.gdk.BUTTON1_MASK,
 			device_targets,
@@ -142,7 +142,7 @@ class Aafm_GUI:
 		)
 		deviceTree.connect('drag-data-get', self.on_device_drag_data_get)
 		deviceTree.connect('drag-begin', self.on_device_drag_begin)
-		
+
 		self.deviceFrame = deviceFrame
 
 
@@ -153,7 +153,7 @@ class Aafm_GUI:
 		self.window.set_title("Android ADB file manager")
 		#self.adb = 'adb'
 		self.host_cwd = os.getcwd()
-		self.aafm.set_device_cwd('/mnt/sdcard/')
+		self.aafm.set_device_cwd('/storage/')
 
 		self.refresh_all()
 
@@ -170,13 +170,13 @@ class Aafm_GUI:
 		self.aafm.refresh_devices()
 		selected = self.aafm.get_device_serial()
 		if before != selected:
-			self.aafm.set_device_cwd('/mnt/sdcard/')
+			self.aafm.set_device_cwd('/storage/')
 			self.refresh_device_files()
 
 		def on_menu_item_toggled(item, serial):
 			if item.get_active():
 				self.aafm.set_device_serial(serial)
-				self.aafm.set_device_cwd('/mnt/sdcard/')
+				self.aafm.set_device_cwd('/storage/')
 				self.refresh_device_files()
 
 		menu = self.menuDevices
@@ -205,7 +205,7 @@ class Aafm_GUI:
 
 
 	def host_navigate_callback(self, widget, path, view_column):
-		
+
 		row = path[0]
 		model = widget.get_model()
 		iter = model.get_iter(row)
@@ -233,7 +233,7 @@ class Aafm_GUI:
 	def refresh_all(self, widget=None):
 		self.refresh_host_files()
 		self.refresh_device_files()
-	
+
 	def refresh_host_files(self):
 		self.host_treeViewFile.load_data(self.dir_scan_host(self.host_cwd))
 		self.hostFrame.set_label('%s:%s' % (self.hostName, self.host_cwd))
@@ -264,7 +264,7 @@ class Aafm_GUI:
 		return self.get_treeviewfile_selected(self.device_treeViewFile)
 
 
-	""" Walks through a directory and return the data in a tree-style list 
+	""" Walks through a directory and return the data in a tree-style list
 		that can be used by the TreeViewFile """
 	def dir_scan_host(self, directory):
 		output = []
@@ -322,7 +322,7 @@ class Aafm_GUI:
 		mode = st.st_mode
 		permissions = ''
 
-		bits = [ 
+		bits = [
 			stat.S_IRUSR, stat.S_IWUSR, stat.S_IXUSR,
 			stat.S_IRGRP, stat.S_IWGRP, stat.S_IXGRP,
 			stat.S_IROTH, stat.S_IWOTH, stat.S_IXOTH
@@ -350,7 +350,7 @@ class Aafm_GUI:
 			print ('unknown uid %d for file %s' % (uid, filename))
 			user = 'unknown'
 		return user
-		
+
 	def _get_owner_windows(self, filename):
 		sd = win32security.GetFileSecurity(filename, win32security.OWNER_SECURITY_INFORMATION)
 		owner_sid = sd.GetSecurityDescriptorOwner()
@@ -366,7 +366,7 @@ class Aafm_GUI:
 			print ('unknown gid %d for file %s' % (gid, filename))
 			groupname = 'unknown'
 		return groupname
-	
+
 	def _get_group_windows(self, filename):
 		return ""
 
@@ -378,7 +378,7 @@ class Aafm_GUI:
 	""" Like dir_scan_host, but in the connected Android device """
 	def dir_scan_device(self, directory):
 		output = []
-		
+
 		entries = self.aafm.get_device_file_list()
 
 		dirs = []
@@ -404,7 +404,7 @@ class Aafm_GUI:
 				'directory': True,
 				'name': d,
 				'size': 0,
-				'timestamp': self.format_timestamp(entries[d]['timestamp']), 
+				'timestamp': self.format_timestamp(entries[d]['timestamp']),
 				'permissions': entries[d]['permissions'],
 				'owner': entries[d]['owner'],
 				'group': entries[d]['group']
@@ -454,11 +454,11 @@ class Aafm_GUI:
 			menuDelete.set_sensitive(has_selection)
 
 			menuRename = builder.get_object('menuHostRenameItem')
-			menuRename.set_sensitive(num_selected == 1)	
+			menuRename.set_sensitive(num_selected == 1)
 
 			menu.popup(None, None, None, event.button, event.time)
 			return True
-		
+
 		# Not consuming the event
 		return False
 
@@ -469,7 +469,7 @@ class Aafm_GUI:
 			self.add_to_queue(self.QUEUE_ACTION_COPY_TO_DEVICE, src, self.aafm.device_cwd)
 		self.process_queue()
 
-	
+
 	# Create host directory
 	def on_host_create_directory_callback(self, widget):
 		directory_name = self.dialog_get_directory_name()
@@ -492,7 +492,7 @@ class Aafm_GUI:
 		items = []
 		for item in selected:
 			items.append(item['filename'])
-			
+
 		result = self.dialog_delete_confirmation(items)
 
 		if result == gtk.RESPONSE_OK:
@@ -538,7 +538,7 @@ class Aafm_GUI:
 			has_selection = num_selected > 0
 			menuDelete = builder.get_object('menuDeviceDeleteItem')
 			menuDelete.set_sensitive(has_selection)
-			
+
 			menuCopy = builder.get_object('menuDeviceCopyToComputer')
 			menuCopy.set_sensitive(has_selection)
 
@@ -547,7 +547,7 @@ class Aafm_GUI:
 
 			menu.popup(None, None, None, event.button, event.time)
 			return True
-		
+
 		# don't consume the event, so we can still double click to navigate
 		return False
 
@@ -585,7 +585,7 @@ class Aafm_GUI:
 		dialog.format_secondary_markup('%s will be deleted. This action cannot be undone.' % joined)
 		dialog.show_all()
 		result = dialog.run()
-		
+
 		dialog.destroy()
 		return result
 
@@ -670,7 +670,7 @@ class Aafm_GUI:
 
 		self.aafm.device_rename_item(full_src_path, full_dst_path)
 		self.refresh_device_files()
-	
+
 	def dialog_get_item_name(self, old_name):
 		dialog = gtk.MessageDialog(
 			None,
@@ -695,7 +695,7 @@ class Aafm_GUI:
 		result = dialog.run()
 		text = entry.get_text()
 		dialog.destroy()
-		
+
 		if result == gtk.RESPONSE_OK:
 			return text
 		else:
@@ -723,20 +723,20 @@ class Aafm_GUI:
 
 	def on_host_drag_data_get(self, widget, context, selection, target_type, time):
 		data = '\n'.join(['file://' + urllib.quote(os.path.join(self.host_cwd, item['filename'])) for item in self.get_host_selected_files()])
-		
+
 		selection.set(selection.target, 8, data)
 
-	
+
 	def on_host_drag_data_received(self, tree_view, context, x, y, selection, info, timestamp):
 		data = selection.data
 		type = selection.type
 		drop_info = tree_view.get_dest_row_at_pos(x, y)
 		destination = self.host_cwd
-		
+
 		if drop_info:
 			model = tree_view.get_model()
 			path, position = drop_info
-			
+
 			if position in [ gtk.TREE_VIEW_DROP_INTO_OR_BEFORE, gtk.TREE_VIEW_DROP_INTO_OR_AFTER ]:
 				iter = model.get_iter(path)
 				is_directory = model.get_value(iter, 0)
@@ -760,12 +760,12 @@ class Aafm_GUI:
 
 
 	def on_device_drag_begin(self, widget, context):
-		
+
 		context.source_window.property_change(self.XDS_ATOM, self.TEXT_ATOM, 8, gtk.gdk.PROP_MODE_REPLACE, self.XDS_FILENAME)
-	
+
 
 	def on_device_drag_data_get(self, widget, context, selection, target_type, time):
-		
+
 		if selection.target == 'XdndDirectSave0':
 			type, format, destination_file = context.source_window.property_get(self.XDS_ATOM, self.TEXT_ATOM)
 
@@ -781,7 +781,7 @@ class Aafm_GUI:
 
 		else:
 			selection.set(selection.target, 8, '\n'.join(['file://' + urllib.quote(self.aafm.device_path_join(self.aafm.device_cwd, item['filename'])) for item in self.get_device_selected_files()]))
-	
+
 
 	def on_device_drag_data_received(self, tree_view, context, x, y, selection, info, timestamp):
 
@@ -789,12 +789,12 @@ class Aafm_GUI:
 		type = selection.type
 		drop_info = tree_view.get_dest_row_at_pos(x, y)
 		destination = self.aafm.device_cwd
-		
+
 		# When dropped over a row
 		if drop_info:
 			model = tree_view.get_model()
 			path, position = drop_info
-			
+
 			if position in [ gtk.TREE_VIEW_DROP_INTO_OR_BEFORE, gtk.TREE_VIEW_DROP_INTO_OR_AFTER ]:
 				iter = model.get_iter(path)
 				is_directory = model.get_value(iter, 0)
@@ -818,18 +818,18 @@ class Aafm_GUI:
 				if line.startswith('file://'):
 					source = urllib.unquote(line.replace('file://', '', 1))
 					self.add_to_queue(self.QUEUE_ACTION_COPY_TO_DEVICE, source, destination)
-		
+
 		self.process_queue()
 
 
 	def add_to_queue(self, action, src_file, dst_path):
 		self.queue.append([action, src_file, dst_path])
-	
+
 
 	def process_queue(self):
 		task = self.process_queue_task()
 		gobject.idle_add(task.next)
-	
+
 	def process_queue_task(self):
 		completed = 0
 		self.update_progress()
