@@ -118,10 +118,6 @@ class Aafm:
 			line = line.rstrip()
 			match = pattern.match(line)
 			
-			if not match:
-				pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+) \ *\d+ (?P<owner>\w+)\W+(?P<group>[\w_]+)\W*(?P<size>\d+)?\W+(?P<datetime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) (?P<name>.+)$")
-				match = pattern.match(line)
-
 			if match:
 				permissions = match.group('permissions')
 				owner = match.group('owner')
