@@ -11,7 +11,7 @@ class Aafm:
 		self.device_serial = device_serial
 		self.busybox = False
 		self.connected_devices = []
-
+		
 		# The Android device should always use POSIX path style separators (/),
 		# so we can happily use os.path.join when running on Linux (which is POSIX)
 		# But we can't use it when running on Windows machines because they use '\\'
@@ -20,7 +20,7 @@ class Aafm:
 		# Not sure how much of a hack is this...
 		# Feel free to illuminate me if there's a better way.
 		pathmodule = __import__('posixpath')
-
+		
 		self._path_join_function = pathmodule.join
 		self._path_normpath_function = pathmodule.normpath
 		self._path_basename_function = pathmodule.basename
@@ -43,7 +43,7 @@ class Aafm:
 
 	def set_host_cwd(self, cwd):
 		self.host_cwd = cwd
-
+	
 
 	def set_device_cwd(self, cwd):
 		self.device_cwd = cwd
@@ -88,30 +88,30 @@ class Aafm:
 			return '-'
 
 		splitted = lines[1].split()
-		if len(splitted) != 6:
+		if len(splitted) != 5:
 			return '-'
 
-		mountpoint, size, used, free, blksize, dfpath = splitted
+		mountpoint, size, used, free, blksize = splitted
 		return free
 
 	def probe_for_busybox(self):
-		#  self.busybox = any(line.startswith('BusyBox') for line in self.adb_shell('ls', '--help'))
-		self.busybox = True
+		self.busybox = any(line.startswith('BusyBox')
+				for line in self.adb_shell('ls', '--help'))
 
 	def device_list_files_parsed(self, device_dir):
 		if self.busybox:
-			command = ['ls', '-l', '-A', '--color=never', '--full-time', device_dir]
-			pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+)\s+(?P<hardlinks>\d+)\s+(?P<owner>[\w_]+)\s+(?P<group>[\w_]+)\s+(?P<size>\d+)\s+(?P<datetime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) \+\d{4} (?P<name>.+)$")
+			command = ['ls', '-l', '-A', '-e', '--color=never', device_dir]
+			pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+)\s+(?P<hardlinks>\d+)\s+(?P<owner>[\w_]+)\s+(?P<group>[\w_]+)\s+(?P<size>\d+)\s+(?P<datetime>\w{3} \w{3}\s+\d+\s+\d{2}:\d{2}:\d{2} \d{4}) (?P<name>.+)$")
 		else:
 			command = ['ls', '-l', '-a', device_dir]
-			pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+)\s+(?P<hardlinks>\d+)\s+(?P<owner>\w+)\W+(?P<group>[\w_]+)\W*(?P<size>\d+)?\W+(?P<datetime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) (?P<name>.+)$")
+			pattern = re.compile(r"^(?P<permissions>[dl\-][rwx\-]+) (?P<owner>\w+)\W+(?P<group>[\w_]+)\W*(?P<size>\d+)?\W+(?P<datetime>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) (?P<name>.+)$")
 
 		entries = {}
 
 		for line in self.adb_shell(*command):
 			line = line.rstrip()
 			match = pattern.match(line)
-
+			
 			if match:
 				permissions = match.group('permissions')
 				owner = match.group('owner')
@@ -120,20 +120,20 @@ class Aafm:
 				if fsize is None:
 					fsize = 0
 				filename = match.group('name')
-
+				
 				if self.busybox:
-					date_format = "%Y-%m-%d %H:%M:%S"
+					date_format = "%a %b %d %H:%M:%S %Y"
 				else:
 					date_format = "%Y-%m-%d %H:%M"
 				timestamp = time.mktime((time.strptime(match.group('datetime'), date_format)))
-
+				
 				is_directory = permissions.startswith('d')
 
 				if permissions.startswith('l'):
 					filename, target = filename.split(' -> ')
 					is_directory = self.is_device_file_a_directory(target)
 
-				entries[filename] = {
+				entries[filename] = { 
 					'is_directory': is_directory,
 					'size': fsize,
 					'timestamp': timestamp,
@@ -177,10 +177,9 @@ class Aafm:
 			entries = self.device_list_files_parsed(self._path_join_function(dirpath, ''))
 			for filename, entry in entries.iteritems():
 				if entry['is_directory']:
-					if not filename.startswith('.'):
-						entry_full_path = os.path.join(dirpath, filename)
-						queue.append(entry_full_path)
-						dirnames.append(filename)
+					entry_full_path = os.path.join(dirpath, filename)
+					queue.append(entry_full_path)
+					dirnames.append(filename)
 				else:
 					filenames.append(filename)
 
