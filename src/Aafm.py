@@ -84,14 +84,20 @@ class Aafm:
 
 	def get_free_space(self):
 		lines = self.adb_shell('df', self.device_cwd)
+		free = '-'
 		if len(lines) != 2 or not lines[0].startswith('Filesystem'):
-			return '-'
+			return free
 
 		splitted = lines[1].split()
-		if len(splitted) != 5:
-			return '-'
+		if len(splitted) == 5:
+			mountpoint, size, used, free, blksize = splitted
+		if len(splitted) == 6:
+			device, size, used, free, percentage, mountpoint = splitted
+			lines = self.adb_shell('df', '-h', self.device_cwd)
+			splitted = lines[1].split()
+			if len(splitted) == 6:
+				device, size, used, free, percentage, mountpoint = splitted
 
-		mountpoint, size, used, free, blksize = splitted
 		return free
 
 	def probe_for_ls_type(self):
