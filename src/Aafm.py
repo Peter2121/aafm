@@ -74,9 +74,14 @@ class Aafm:
 				if line and not line.startswith('List of devices attached')]
 
 		for serial, kind in serials:
-			build_prop = self.execute(self.adb, '-s', serial,
-					'shell', 'su', '-c', 'cat', '/system/build.prop')
-			props = dict(x.strip().split('=', 1) for x in build_prop if '=' in x)
+			props = dict()
+			suexists = self.execute(self.adb, '-s', serial,
+					'shell', 'which', 'su')
+			if suexists:
+				build_prop = self.execute(self.adb, '-s', serial,
+						'shell', 'su', '-c', 'cat', '/system/build.prop')
+				props = dict(x.strip().split('=', 1) for x in build_prop if '=' in x)
+
 			yield (serial, props.get('ro.product.model', serial))
 
 	def get_device_file_list(self):
