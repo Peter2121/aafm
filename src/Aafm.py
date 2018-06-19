@@ -11,7 +11,7 @@ class Aafm:
 		self.device_serial = device_serial
 		self.ls_type = ''
 		self.connected_devices = []
-		
+
 		# The Android device should always use POSIX path style separators (/),
 		# so we can happily use os.path.join when running on Linux (which is POSIX)
 		# But we can't use it when running on Windows machines because they use '\\'
@@ -20,7 +20,7 @@ class Aafm:
 		# Not sure how much of a hack is this...
 		# Feel free to illuminate me if there's a better way.
 		pathmodule = __import__('posixpath')
-		
+
 		self._path_join_function = pathmodule.join
 		self._path_normpath_function = pathmodule.normpath
 		self._path_basename_function = pathmodule.basename
@@ -28,8 +28,34 @@ class Aafm:
 		self.refresh_devices()
 
 	def execute(self, *args):
-		print "EXECUTE", args
-		proc = subprocess.Popen(args, stdout=subprocess.PIPE)
+		args_list = list(args)
+		command = ""
+		is_file_transfer = False
+		for i in range(len(args_list)):
+			if args_list[i] == "push" or args_list[i] == "pull":
+				is_file_transfer = True
+			if args_list[i][0] == "/":
+				args_list[i] = r'"' + args_list[i] + r'"'
+				if is_file_transfer == False:
+					args_list[i] = args_list[i].replace(r" ",r"\ ")
+					args_list[i] = args_list[i].replace(r"'",r"\'")
+					args_list[i] = args_list[i].replace(r"(",r"\(")
+					args_list[i] = args_list[i].replace(r")",r"\)")
+					args_list[i] = args_list[i].replace(r"&",r"\&")
+					args_list[i] = args_list[i].replace(r"'",r"\'")
+					args_list[i] = args_list[i].replace(r"`",r"\`")
+					args_list[i] = args_list[i].replace(r"|",r"\|")
+					args_list[i] = args_list[i].replace(r";",r"\;")
+					args_list[i] = args_list[i].replace(r"<",r"\<")
+					args_list[i] = args_list[i].replace(r">",r"\>")
+					args_list[i] = args_list[i].replace(r"*",r"\*")
+					args_list[i] = args_list[i].replace(r"#",r"\#")
+					args_list[i] = args_list[i].replace(r"%",r"\%")
+					args_list[i] = args_list[i].replace(r"=",r"\=")
+					args_list[i] = args_list[i].replace(r"~",r"\~")
+			command = command + args_list[i] + " "
+		print command
+		proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
 		return filter(None, [line.rstrip('\r\n') for line in proc.stdout])
 
 	def _adb(self, *args):
@@ -43,7 +69,7 @@ class Aafm:
 
 	def set_host_cwd(self, cwd):
 		self.host_cwd = cwd
-	
+
 
 	def set_device_cwd(self, cwd):
 		self.device_cwd = cwd
@@ -131,7 +157,7 @@ class Aafm:
 		for line in self.adb_shell(*command):
 			line = line.rstrip()
 			match = pattern.match(line)
-			
+
 			if match:
 				permissions = match.group('permissions')
 				owner = match.group('owner')
@@ -140,20 +166,19 @@ class Aafm:
 				if fsize is None:
 					fsize = 0
 				filename = match.group('name')
-				
+
 				if self.ls_type == 'busybox':
 					date_format = "%a %b %d %H:%M:%S %Y"
 				else:
 					date_format = "%Y-%m-%d %H:%M"
 				timestamp = time.mktime((time.strptime(match.group('datetime'), date_format)))
-				
+
 				is_directory = permissions.startswith('d')
 
 				if permissions.startswith('l'):
 					filename, target = filename.split(' -> ')
 					is_directory = self.is_device_file_a_directory(target)
-
-				entries[filename] = { 
+				entries[filename] = {
 					'is_directory': is_directory,
 					'size': fsize,
 					'timestamp': timestamp,

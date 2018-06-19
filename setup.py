@@ -6,7 +6,7 @@ from distutils.core import setup
 prefix=sys.prefix + '/bin'
 
 setup(name='aafm',
-      version='0.4',
+      version='0.5',
       description='Android ADB File Manager',
       author='Soledad Penades',
       author_email='hello@soledadpenades.com',
