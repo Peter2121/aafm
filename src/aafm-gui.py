@@ -272,8 +272,8 @@ class Aafm_GUI:
 		root, dirs, files = next(os.walk(directory))
 
 		if not self.showHidden:
-			files = [f for f in files if not f[0] == '.']
-			dirs = [d for d in dirs if not d[0] == '.']
+			files = [f for f in files]
+			dirs = [d for d in dirs]
 
 		dirs.sort()
 		files.sort()
@@ -391,8 +391,8 @@ class Aafm_GUI:
 				files.append(filename)
 
 		if not self.showHidden:
-			files = [f for f in files if not f[0] == '.']
-			dirs = [d for d in dirs if not d[0] == '.']
+			files = [f for f in files]
+			dirs = [d for d in dirs]
 
 		dirs.sort()
 		files.sort()
